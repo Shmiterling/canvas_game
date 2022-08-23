@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>canvas_game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        canvas {
+            background-color: #eee;
+        }
+    </style>
+</head>
+
+<body>
+
+
+    <script type="text/javascript">
+        let myGamePiece;
+        const body = document.body;
+
+        body.onload = () => {
+            startGame();
+        }
+
+        body.addEventListener("keydown", (e) => keyControls(e));
+        body.addEventListener("keyup", (e) => keyControls(e));
+
+        const startGame = () => {
+            myGameArea.start(480, 270);
+            myGamePiece = new component(30, 30, "#aaa", 10, 120);
+        }
+
+        let myGameArea = {
+            canvas: document.createElement("canvas"),
+            start: function (width, height) {
+                this.canvas.width = width;
+                this.canvas.height = height;
+                this.context = this.canvas.getContext("2d");
+                document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+                this.interval = setInterval(updateGameArea, 20);
+
+            },
+            clear: function () {
+                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+        }
+
+        function component(width, height, color, x, y) {
+            this.width = width;
+            this.height = height;
+            this.speedX = 10;
+            this.speedY = 10;
+            this.x = x;
+            this.y = y;
+            this.movingUp = false;
+            this.movingDown = false;
+            this.movingLeft = false;
+            this.movingRight = false;
+            this.update = function () {
+                ctx = myGameArea.context;
+                ctx.fillStyle = color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
+            this.newPos = function () {
+                if (this.movingRight) {
+                    if (myGameArea.canvas.width > this.x + this.width) {
+                        this.x += this.speedX;
+                    }
+                }
+                if (this.movingUp) {
+                    if(!this.y <= 0){
+                        this.y -= this.speedY;
+                    }
+                }
+                if (this.movingDown) {
+                    if(myGameArea.canvas.height > this.y + this.height) {
+                        this.y += this.speedY;
+                    }
+                }
+                if (this.movingLeft) {
+                    if (!this.x <= 0) {
+                        this.x -= this.speedX;
+                    }
+                }
+            }
+        }
+
+        function updateGameArea() {
+            console.log("update");
+            myGameArea.clear();
+            myGamePiece.update();
+            myGamePiece.newPos();
+        }
+
+        const keyControls = (e) => {
+            if (e.type === "keydown") {
+                if (e.code === "ArrowUp") {
+                    myGamePiece.movingUp = true;
+                }
+                if (e.code === "ArrowDown") {
+                    myGamePiece.movingDown = true;
+                }
+                if (e.code === "ArrowLeft") {
+                    myGamePiece.movingLeft = true;
+                }
+                if (e.code === "ArrowRight") {
+                    myGamePiece.movingRight = true;
+                }
+            }
+            if (e.type === "keyup") {
+                if (e.code === "ArrowUp") {
+                    myGamePiece.movingUp = false;
+                }
+                if (e.code === "ArrowDown") {
+                    myGamePiece.movingDown = false;
+                }
+                if (e.code === "ArrowLeft") {
+                    myGamePiece.movingLeft = false;
+                }
+                if (e.code === "ArrowRight") {
+                    myGamePiece.movingRight = false;
+                }
+            }
+        }
+
+
+    </script>
+</body>
+
+</html>
