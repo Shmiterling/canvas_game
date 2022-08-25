@@ -23,6 +23,8 @@
 
     <script type="text/javascript">
         let myGamePiece;
+        let mouseX = 0;
+        let mouseY = 0;
         const body = document.body;
 
         body.onload = () => {
@@ -31,6 +33,7 @@
 
         body.addEventListener("keydown", (e) => keyControls(e));
         body.addEventListener("keyup", (e) => keyControls(e));
+        body.addEventListener("mousemove", (e) => mouseObserber(e))
 
         const startGame = () => {
             myGameArea.start(480, 270);
@@ -55,10 +58,15 @@
         function component(width, height, color, x, y) {
             this.width = width;
             this.height = height;
-            this.speedX = 10;
-            this.speedY = 10;
+            this.speedX = 2;
+            this.speedY = 2;
             this.x = x;
             this.y = y;
+            this.angle = 0;
+            this.centerPoint = {
+                x: this.x + this.width / 2,
+                y: this.y + this.height / 2
+            }
             this.movingUp = false;
             this.movingDown = false;
             this.movingLeft = false;
@@ -66,37 +74,58 @@
             this.update = function () {
                 ctx = myGameArea.context;
                 ctx.fillStyle = color;
-                ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.translate(this.centerPoint.x, this.centerPoint.y);
+                ctx.rotate(this.angle);
+                ctx.fillRect(0 - this.width / 2, 0 - this.height / 2, this.width, this.height);
+                ctx.rotate(-this.angle);
+                ctx.translate(-this.centerPoint.x, -this.centerPoint.y);
             }
             this.newPos = function () {
                 if (this.movingRight) {
                     if (myGameArea.canvas.width > this.x + this.width) {
                         this.x += this.speedX;
+                        this.newAngle()
                     }
                 }
                 if (this.movingUp) {
-                    if(!this.y <= 0){
+                    if (!this.y <= 0) {
                         this.y -= this.speedY;
+                        this.newAngle()
                     }
                 }
                 if (this.movingDown) {
-                    if(myGameArea.canvas.height > this.y + this.height) {
+                    if (myGameArea.canvas.height > this.y + this.height) {
                         this.y += this.speedY;
+                        this.newAngle()
                     }
                 }
                 if (this.movingLeft) {
                     if (!this.x <= 0) {
                         this.x -= this.speedX;
+                        this.newAngle()
                     }
                 }
+            }
+
+            this.newCenterPoint = function () {
+                this.centerPoint.x = this.x + this.width / 2;
+                this.centerPoint.y = this.y + this.height / 2;
+            }
+
+            this.newAngle = function (angle) {
+                let componentX = myGamePiece.centerPoint.x;
+                let componentY = myGamePiece.centerPoint.y;
+                let cos = 1 / (mouseX - componentX);
+                let sin = 1 / (mouseY - componentY);
+                this.angle = -Math.atan(sin / cos);
             }
         }
 
         function updateGameArea() {
-            console.log("update");
             myGameArea.clear();
             myGamePiece.update();
             myGamePiece.newPos();
+            myGamePiece.newCenterPoint();
         }
 
         const keyControls = (e) => {
@@ -129,6 +158,13 @@
                 }
             }
         }
+
+        const mouseObserber = (e) => {
+            mouseX = e.x;
+            mouseY = e.y;
+            myGamePiece.newAngle()
+        }
+
 
 
     </script>
