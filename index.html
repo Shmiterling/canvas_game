@@ -15,29 +15,55 @@
         canvas {
             background-color: #eee;
         }
+
+        .control_panel {
+            position: absolute;
+            top: 0;
+            left: 480px;
+            width: 50px;
+            height: auto;
+        }
+
+        label,
+        input {
+            display: block;
+            position: relative;
+            width: 100%;
+            font-size: .5em;
+            outline: none;
+        }
     </style>
 </head>
 
 <body>
-
+    <div class="control_panel">
+        <label for="speed">Speed</label>
+        <input type="number" id="speed" name="speed" min="1" max="10" value="1" onkeydown="return false">
+        <label for="ammo_speed">Ammo speed</label>
+        <input type="number" id="ammo_speed" name="ammo_speed" min="1" max="20" value="10" onkeydown="return false">
+        <label for="distance">Ammo distance</label>
+        <input type="number" id="distance" name="distance" min="50" max="800" value="400" onkeydown="return false" step="50">
+    </div>
 
     <script type="text/javascript">
         let myGamePiece;
         let mouseX = 0;
         let mouseY = 0;
-        const body = document.body;
 
+        const body = document.body;
+        let shots = [];
         body.onload = () => {
             startGame();
         }
 
         body.addEventListener("keydown", (e) => keyControls(e));
         body.addEventListener("keyup", (e) => keyControls(e));
-        body.addEventListener("mousemove", (e) => mouseObserber(e))
+        body.addEventListener("mousemove", (e) => mouseObserber(e));
 
         const startGame = () => {
             myGameArea.start(480, 270);
-            myGamePiece = new component(30, 30, "#aaa", 10, 120);
+            myGamePiece = new component(30, 30, 0, 0);
+            document.querySelector("canvas").addEventListener("click", () => myGamePiece.shot())
         }
 
         let myGameArea = {
@@ -55,14 +81,14 @@
             }
         }
 
-        function component(width, height, color, x, y) {
+
+        function component(width, height, x, y) {
             this.width = width;
             this.height = height;
-            this.speedX = 2;
-            this.speedY = 2;
+            this.speed = 1;
             this.x = x;
             this.y = y;
-            this.angle = 0;
+            this.angle = 0
             this.centerPoint = {
                 x: this.x + this.width / 2,
                 y: this.y + this.height / 2
@@ -71,61 +97,110 @@
             this.movingDown = false;
             this.movingLeft = false;
             this.movingRight = false;
+            this.ammoProperties = {
+                id: 1,
+                width: 10,
+                height: 10,
+                speed: 10,
+                color: "red",
+                distance: 400,
+                flyingTime: 1000
+            }
             this.update = function () {
                 ctx = myGameArea.context;
-                ctx.fillStyle = color;
                 ctx.translate(this.centerPoint.x, this.centerPoint.y);
                 ctx.rotate(this.angle);
+                let mainGrd = ctx.createLinearGradient(0, 0, 1, 0);
+                mainGrd.addColorStop(0, "#910BEF");
+                mainGrd.addColorStop(1, "#EFE70B");
+                ctx.fillStyle = mainGrd;
                 ctx.fillRect(0 - this.width / 2, 0 - this.height / 2, this.width, this.height);
                 ctx.rotate(-this.angle);
                 ctx.translate(-this.centerPoint.x, -this.centerPoint.y);
             }
             this.newPos = function () {
                 if (this.movingRight) {
-                    if (myGameArea.canvas.width > this.x + this.width) {
-                        this.x += this.speedX;
-                        this.newAngle()
-                    }
-                }
+                    if (this.x < myGameArea.canvas.width - this.width - this.speed) {
+                        this.x += this.speed;
+                        this.newAngle();
+                    } else {
+                        this.x = myGameArea.canvas.width - this.width;
+                    };
+                };
                 if (this.movingUp) {
-                    if (!this.y <= 0) {
-                        this.y -= this.speedY;
+                    if (this.y > this.speed) {
+                        this.y -= this.speed;
                         this.newAngle()
+                    } else {
+                        this.y = 0;
                     }
                 }
                 if (this.movingDown) {
-                    if (myGameArea.canvas.height > this.y + this.height) {
-                        this.y += this.speedY;
+                    if (this.y < myGameArea.canvas.height - this.height - this.speed) {
+                        this.y = this.y + this.speed;
                         this.newAngle()
+                    } else {
+                        this.y = myGameArea.canvas.height - this.height
                     }
                 }
                 if (this.movingLeft) {
-                    if (!this.x <= 0) {
-                        this.x -= this.speedX;
+                    if (this.x > 0 + this.speed) {
+                        this.x -= this.speed;
                         this.newAngle()
+                    } else {
+                        this.x = 0;
                     }
                 }
-            }
+            };
 
             this.newCenterPoint = function () {
                 this.centerPoint.x = this.x + this.width / 2;
                 this.centerPoint.y = this.y + this.height / 2;
-            }
+            };
 
-            this.newAngle = function (angle) {
-                let componentX = myGamePiece.centerPoint.x;
-                let componentY = myGamePiece.centerPoint.y;
-                let cos = 1 / (mouseX - componentX);
-                let sin = 1 / (mouseY - componentY);
-                this.angle = -Math.atan(sin / cos);
+            this.newAngle = function () {
+                let y = mouseY - this.centerPoint.y;
+                let x = mouseX - this.centerPoint.x;
+                let sin = y / Math.sqrt(x ** 2 + y ** 2);
+                let cos = x / Math.sqrt(x ** 2 + y ** 2);
+                if (sin >= 0) {
+                    this.angle = Math.acos(cos)
+                }
+                if (sin < 0) {
+                    this.angle = 2 * Math.PI - Math.acos(cos);
+                }
+            };
+
+            this.shot = function () {
+                let myAmmo = new ammo(
+                    this.ammoProperties.id,
+                    this.ammoProperties.width,
+                    this.ammoProperties.height,
+                    this.ammoProperties.speed,
+                    this.ammoProperties.color,
+                    this.centerPoint.x,
+                    this.centerPoint.y,
+                    this.angle
+                );
+                this.ammoProperties.id++;
+                shots.push(myAmmo);
+                setTimeout(() => {
+                    shots.shift()
+                }, this.ammoProperties.distance / this.ammoProperties.speed * 20);
             }
         }
 
         function updateGameArea() {
             myGameArea.clear();
-            myGamePiece.update();
             myGamePiece.newPos();
             myGamePiece.newCenterPoint();
+            myGamePiece.update();
+            if (shots[0] !== undefined) {
+                for (const shot of shots) {
+                    shot.newPos();
+                    shot.update();
+                }
+            }
         }
 
         const keyControls = (e) => {
@@ -162,9 +237,51 @@
         const mouseObserber = (e) => {
             mouseX = e.x;
             mouseY = e.y;
-            myGamePiece.newAngle()
+            myGamePiece.newAngle();
         }
 
+        function ammo(id, width, height, speed, color, x, y, angle) {
+            this.id = id;
+            this.width = width;
+            this.height = height;
+            this.color = color;
+            this.angle = angle;
+            this.speed = speed;
+            this.speedX = this.speed * Math.cos(this.angle);
+            this.speedY = this.speed * Math.sin(this.angle);
+            this.x = x;
+            this.y = y;
+            this.update = function () {
+                ctx.translate(this.x, this.y);
+                ctx.fillStyle = "red";
+                ctx.rotate(this.angle);
+                ctx.fillRect(0 - this.width / 2, 0 - this.height / 2, this.width, this.height)
+                ctx.rotate(-this.angle)
+                ctx.translate(-(this.x - this.radius / 2), -(this.y - this.radius / 2));
+                ctx.translate(-(this.x), -(this.y));
+            }
+            this.newPos = function () {
+                this.x += this.speedX;
+                this.y += this.speedY;
+            }
+        }
+
+
+        //--------------------------------------------
+
+        const speedInput = document.getElementById("speed");
+        const ammoSpeedInput = document.getElementById("ammo_speed");
+        const ammoFlyingTime = document.getElementById("distance");
+
+        speedInput.addEventListener("change", (e) => {
+            myGamePiece.speed = Number(e.target.value);
+        });
+        ammoSpeedInput.addEventListener("change", (e) => {
+            myGamePiece.ammoProperties.speed = Number(e.target.value);
+        });
+        ammoFlyingTime.addEventListener("change", (e) => {
+            myGamePiece.ammoProperties.distance = Number(e.target.value);
+        });
 
 
     </script>
