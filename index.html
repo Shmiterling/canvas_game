@@ -42,7 +42,11 @@
         <label for="ammo_speed">Ammo speed</label>
         <input type="number" id="ammo_speed" name="ammo_speed" min="1" max="20" value="10" onkeydown="return false">
         <label for="distance">Ammo distance</label>
-        <input type="number" id="distance" name="distance" min="50" max="800" value="400" onkeydown="return false" step="50">
+        <input type="number" id="distance" name="distance" min="50" max="800" value="400" onkeydown="return false"
+            step="50">
+        <label for="fireRate">Fire rate</label>
+        <input type="number" id="fireRate" name="fireRate" min="50" max="1000" value="500" onkeydown="return false"
+            step="50">
     </div>
 
     <script type="text/javascript">
@@ -63,7 +67,8 @@
         const startGame = () => {
             myGameArea.start(480, 270);
             myGamePiece = new component(30, 30, 0, 0);
-            document.querySelector("canvas").addEventListener("click", () => myGamePiece.shot())
+            document.querySelector("canvas").addEventListener("mousedown", () => myGamePiece.fireState = true)
+            document.querySelector("canvas").addEventListener("mouseup", () => myGamePiece.fireState = false)
         }
 
         let myGameArea = {
@@ -92,7 +97,9 @@
             this.centerPoint = {
                 x: this.x + this.width / 2,
                 y: this.y + this.height / 2
-            }
+            },
+            this.fireState = false;
+            this.fireControl = true;
             this.movingUp = false;
             this.movingDown = false;
             this.movingLeft = false;
@@ -104,7 +111,8 @@
                 speed: 10,
                 color: "red",
                 distance: 400,
-                flyingTime: 1000
+                flyingTime: 1000,
+                fireRate: 500
             }
             this.update = function () {
                 ctx = myGameArea.context;
@@ -172,21 +180,25 @@
             };
 
             this.shot = function () {
-                let myAmmo = new ammo(
-                    this.ammoProperties.id,
-                    this.ammoProperties.width,
-                    this.ammoProperties.height,
-                    this.ammoProperties.speed,
-                    this.ammoProperties.color,
-                    this.centerPoint.x,
-                    this.centerPoint.y,
-                    this.angle
-                );
-                this.ammoProperties.id++;
-                shots.push(myAmmo);
-                setTimeout(() => {
-                    shots.shift()
-                }, this.ammoProperties.distance / this.ammoProperties.speed * 20);
+                if(this.fireState && this.fireControl) {
+                    this.fireControl = false;
+                    let myAmmo = new ammo(
+                        this.ammoProperties.id,
+                        this.ammoProperties.width,
+                        this.ammoProperties.height,
+                        this.ammoProperties.speed,
+                        this.ammoProperties.color,
+                        this.centerPoint.x,
+                        this.centerPoint.y,
+                        this.angle
+                    );
+                    this.ammoProperties.id++;
+                    shots.push(myAmmo);
+                    setTimeout(() => {
+                        shots.shift()
+                    }, this.ammoProperties.distance / this.ammoProperties.speed * 20);
+                    setTimeout(() => {this.fireControl = true},this.ammoProperties.fireRate)
+                }
             }
         }
 
@@ -195,6 +207,7 @@
             myGamePiece.newPos();
             myGamePiece.newCenterPoint();
             myGamePiece.update();
+            myGamePiece.shot();
             if (shots[0] !== undefined) {
                 for (const shot of shots) {
                     shot.newPos();
@@ -272,6 +285,7 @@
         const speedInput = document.getElementById("speed");
         const ammoSpeedInput = document.getElementById("ammo_speed");
         const ammoFlyingTime = document.getElementById("distance");
+        const fireRate = document.getElementById("fireRate");
 
         speedInput.addEventListener("change", (e) => {
             myGamePiece.speed = Number(e.target.value);
@@ -281,6 +295,9 @@
         });
         ammoFlyingTime.addEventListener("change", (e) => {
             myGamePiece.ammoProperties.distance = Number(e.target.value);
+        });
+        fireRate.addEventListener("change", (e) => {
+            myGamePiece.ammoProperties.fireRate = Number(e.target.value);
         });
 
 
